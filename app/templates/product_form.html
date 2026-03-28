@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование товара</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/Icon.ico">
+    <style>
+        .form-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: inline-block;
+            width: 180px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 300px;
+            padding: 5px;
+        }
+        .form-group textarea {
+            height: 80px;
+        }
+        .image-preview {
+            margin: 10px 0;
+        }
+        .image-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #00FA9A;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #7FFF00;
+            padding: 10px 20px;
+        }
+        .logo img {
+            height: 50px;
+        }
+        .user-info {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="/static/images/Icon.png" alt="Логотип">
+        </div>
+        <div class="user-info" id="user-info"></div>
+        <button id="logout">Выйти</button>
+    </div>
+
+    <div class="form-container">
+        <h1 id="form-title">Добавление товара</h1>
+        <form id="product-form" enctype="multipart/form-data">
+            <input type="hidden" id="product-id" name="id">
+
+            <div class="form-group">
+                <label>Фото товара:</label>
+                <div class="image-preview">
+                    <img id="image-preview" src="/static/images/picture.png" alt="Превью">
+                </div>
+                <input type="file" id="image-file" accept="image/*">
+                <small>Размер фото будет изменён до 300x200 пикселей</small>
+            </div>
+
+            <div class="form-group">
+                <label>Наименование товара:</label>
+                <input type="text" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Категория:</label>
+                <select id="category" required></select>
+            </div>
+
+            <div class="form-group">
+                <label>Описание:</label>
+                <textarea id="description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Производитель:</label>
+                <select id="manufacturer" required></select>
+            </div>
+
+            <div class="form-group">
+                <label>Поставщик:</label>
+                <input type="text" id="supplier" required>
+            </div>
+
+            <div class="form-group">
+                <label>Цена (руб):</label>
+                <input type="number" id="price" step="0.01" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <label>Единица измерения:</label>
+                <select id="unit" required></select>
+            </div>
+
+            <div class="form-group">
+                <label>Количество на складе:</label>
+                <input type="number" id="quantity" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <label>Скидка (%):</label>
+                <input type="number" id="discount" min="0" max="100">
+            </div>
+
+            <div class="form-group">
+                <button type="submit">Сохранить</button>
+                <button type="button" id="cancel">Отмена</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        let productId = null;
+        let currentImagePath = null;
+        let isEdit = false;
+
+        // Проверка авторизации
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Блокировка открытия нескольких окон редактирования (устанавливается при переходе)
+        // При загрузке страницы снимать блокировку будем после закрытия
+        window.addEventListener('beforeunload', function() {
+            localStorage.removeItem('editLock');
+        });
+
+        // Получение параметра id из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        productId = urlParams.get('id');
+
+        // Загрузка информации о пользователе
+        async function loadUser() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('user-info').innerText = user.full_name;
+                    if (user.role !== 'admin') {
+                        alert('Доступ запрещён');
+                        window.location.href = '/products';
+                    }
+                } else {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                }
+            } catch (err) {
+                console.error(err);
+                window.location.href = '/login';
+            }
+        }
+
+        // Загрузка выпадающих списков (категории, производители, единицы измерения)
+        async function loadSelectOptions() {
+            const headers = { 'Authorization': `Bearer ${token}` };
+            try {
+                // Категории
+                const catRes = await fetch('/api/products/categories', { headers });
+                const categories = await catRes.json();
+                const catSelect = document.getElementById('category');
+                categories.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.text = c;
+                    catSelect.appendChild(opt);
+                });
+
+                // Производители
+                const manRes = await fetch('/api/products/manufacturers', { headers });
+                const manufacturers = await manRes.json();
+                const manSelect = document.getElementById('manufacturer');
+                manufacturers.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.text = m;
+                    manSelect.appendChild(opt);
+                });
+
+                // Единицы измерения
+                const unitRes = await fetch('/api/products/units', { headers });
+                const units = await unitRes.json();
+                const unitSelect = document.getElementById('unit');
+                units.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.text = u;
+                    unitSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Ошибка загрузки справочников:', err);
+            }
+        }
+
+        // Загрузка данных товара для редактирования
+        async function loadProduct() {
+            if (!productId) {
+                document.getElementById('form-title').innerText = 'Добавление товара';
+                isEdit = false;
+                return;
+            }
+            isEdit = true;
+            document.getElementById('form-title').innerText = 'Редактирование товара';
+            const res = await fetch(`/api/products/${productId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                alert('Товар не найден');
+                window.location.href = '/products';
+                return;
+            }
+            const product = await res.json();
+            document.getElementById('product-id').value = product.id;
+            document.getElementById('name').value = product.name;
+            document.getElementById('category').value = product.category;
+            document.getElementById('description').value = product.description;
+            document.getElementById('manufacturer').value = product.manufacturer;
+            document.getElementById('supplier').value = product.supplier;
+            document.getElementById('price').value = product.price;
+            document.getElementById('unit').value = product.unit;
+            document.getElementById('quantity').value = product.quantity_in_stock;
+            document.getElementById('discount').value = product.discount_percent;
+            currentImagePath = product.image_path;
+            if (currentImagePath) {
+                document.getElementById('image-preview').src = currentImagePath;
+            }
+        }
+
+        // Предпросмотр выбранного изображения
+        document.getElementById('image-file').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('image-preview').src = ev.target.result;
+            };
+            if (e.target.files[0]) {
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Отправка формы
+        document.getElementById('product-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Валидация
+            const price = parseFloat(document.getElementById('price').value);
+            const quantity = parseInt(document.getElementById('quantity').value);
+            if (price < 0) { alert('Цена не может быть отрицательной'); return; }
+            if (quantity < 0) { alert('Количество не может быть отрицательным'); return; }
+
+            let imagePath = currentImagePath;
+            const file = document.getElementById('image-file').files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                const uploadRes = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                if (uploadRes.ok) {
+                    const data = await uploadRes.json();
+                    imagePath = data.path;
+                } else {
+                    alert('Ошибка загрузки изображения');
+                    return;
+                }
+            }
+
+            // Сбор данных товара
+            const productData = {
+                article: document.getElementById('article') ? document.getElementById('article').value : '',
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+                manufacturer: document.getElementById('manufacturer').value,
+                supplier: document.getElementById('supplier').value,
+                price: price,
+                unit: document.getElementById('unit').value,
+                quantity_in_stock: quantity,
+                discount_percent: parseInt(document.getElementById('discount').value) || 0,
+                image_path: imagePath
+            };
+
+            let url = '/api/products';
+            let method = 'POST';
+            if (isEdit) {
+                url = `/api/products/${productId}`;
+                method = 'PUT';
+            }
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productData)
+            });
+            if (res.ok) {
+                // Успешно – снимаем блокировку и переходим к списку
+                localStorage.removeItem('editLock');
+                window.location.href = '/products';
+            } else {
+                const err = await res.json();
+                alert('Ошибка сохранения: ' + (err.detail || 'Неизвестная ошибка'));
+            }
+        });
+
+        document.getElementById('cancel').onclick = () => {
+            localStorage.removeItem('editLock');
+            window.location.href = '/products';
+        };
+        document.getElementById('logout').onclick = () => {
+            localStorage.clear();
+            window.location.href = '/login';
+        };
+
+        // Запуск
+        loadUser().then(() => {
+            loadSelectOptions().then(() => loadProduct());
+        });
+    </script>
+</body>
+</html>

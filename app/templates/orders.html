@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заказы – Магазин обуви</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/Icon.ico">
+    <style>
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #7FFF00;
+            padding: 10px 20px;
+        }
+        .logo img { height: 50px; }
+        .user-info { font-weight: bold; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th { background-color: #f2f2f2; }
+        button {
+            background-color: #00FA9A;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .add-button {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><img src="/static/images/Icon.png" alt="Логотип"></div>
+        <div class="user-info" id="user-info"></div>
+        <button id="logout">Выйти</button>
+    </div>
+
+    <div class="add-button">
+        <button id="add-order" style="display: none;">Добавить заказ</button>
+    </div>
+
+    <table id="orders-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Артикул</th>
+                <th>Статус</th>
+                <th>Адрес выдачи</th>
+                <th>Дата заказа</th>
+                <th>Дата выдачи</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let currentUser = null;
+        let token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        async function loadUser() {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                currentUser = await res.json();
+                document.getElementById('user-info').innerText = currentUser.full_name;
+                if (currentUser.role === 'admin') {
+                    document.getElementById('add-order').style.display = 'inline-block';
+                } else if (currentUser.role !== 'manager') {
+                    // Если не менеджер и не админ – перенаправляем на товары
+                    window.location.href = '/products';
+                }
+            } else {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        async function loadOrders() {
+            const res = await fetch('/api/orders/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const orders = await res.json();
+            renderTable(orders);
+        }
+
+        async function renderTable(orders) {
+            const tbody = document.querySelector('#orders-table tbody');
+            tbody.innerHTML = '';
+            // Загружаем адреса пунктов выдачи
+            const ppRes = await fetch('/api/pickup-points/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const pickupPoints = await ppRes.json();
+            const ppMap = {};
+            pickupPoints.forEach(pp => { ppMap[pp.id] = pp.address; });
+
+            for (const order of orders) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.article}</td>
+                    <td>${order.status}</td>
+                    <td>${ppMap[order.pickup_point_id] || order.pickup_point_id}</td>
+                    <td>${order.order_date}</td>
+                    <td>${order.issue_date || ''}</td>
+                `;
+                if (currentUser && currentUser.role === 'admin') {
+                    const actions = document.createElement('td');
+                    const editBtn = document.createElement('button');
+                    editBtn.innerText = 'Редактировать';
+                    editBtn.onclick = () => editOrder(order.id);
+                    const delBtn = document.createElement('button');
+                    delBtn.innerText = 'Удалить';
+                    delBtn.onclick = () => deleteOrder(order.id);
+                    actions.appendChild(editBtn);
+                    actions.appendChild(delBtn);
+                    tr.appendChild(actions);
+                } else {
+                    tr.appendChild(document.createElement('td'));
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        function editOrder(id) {
+            window.location.href = `/order_form?id=${id}`;
+        }
+
+        async function deleteOrder(id) {
+            if (!confirm('Удалить заказ?')) return;
+            const res = await fetch(`/api/orders/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                loadOrders();
+            } else {
+                alert('Ошибка удаления');
+            }
+        }
+
+        document.getElementById('add-order').onclick = () => {
+            window.location.href = '/order_form';
+        };
+        document.getElementById('logout').onclick = () => {
+            localStorage.clear();
+            window.location.href = '/login';
+        };
+
+        loadUser().then(() => loadOrders());
+    </script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Товары – Магазин обуви</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/Icon.ico">
+    <style>
+        /* Дополнительные стили для таблицы и уведомлений */
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+        }
+        .old-price {
+            text-decoration: line-through;
+            color: red;
+            margin-right: 8px;
+        }
+        .new-price {
+            color: black;
+            font-weight: bold;
+        }
+        tr.discount-highlight {
+            background-color: #2E8B57;
+            color: white;
+        }
+        tr.out-of-stock {
+            background-color: #ADD8E6;
+        }
+        .filters {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filters input, .filters select {
+            padding: 8px;
+            font-size: 14px;
+        }
+        .filters input {
+            width: 300px;
+        }
+        button {
+            background-color: #00FA9A;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #2ecc71;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #7FFF00;
+            padding: 10px 20px;
+        }
+        .logo img {
+            height: 50px;
+        }
+        .user-info {
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="/static/images/Icon.png" alt="Логотип">
+        </div>
+        <div class="user-info" id="user-info"></div>
+        <button id="logout">Выйти</button>
+    </div>
+
+    <div class="filters" id="filters" style="display: none;">
+        <input type="text" id="search" placeholder="Поиск по названию, категории, описанию, производителю, поставщику, артикулу">
+        <select id="sort-quantity">
+            <option value="">Нет сортировки по количеству</option>
+            <option value="asc">По возрастанию</option>
+            <option value="desc">По убыванию</option>
+        </select>
+        <select id="filter-supplier">
+            <option value="">Все поставщики</option>
+        </select>
+    </div>
+
+    <div style="margin: 20px;">
+        <button id="add-product" style="display: none;">Добавить товар</button>
+    </div>
+
+    <table id="products-table">
+        <thead>
+            <tr>
+                <th>Фото</th>
+                <th>Наименование</th>
+                <th>Категория</th>
+                <th>Описание</th>
+                <th>Производитель</th>
+                <th>Поставщик</th>
+                <th>Цена</th>
+                <th>Ед. изм.</th>
+                <th>Кол-во</th>
+                <th>Скидка</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let currentUser = null;
+        let token = localStorage.getItem('token');
+        let guest = localStorage.getItem('guest');
+
+        // Проверка авторизации
+        if (!token && !guest) {
+            window.location.href = '/login';
+        }
+
+        // Загрузка информации о пользователе
+        async function loadUser() {
+            if (token) {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        currentUser = await res.json();
+                        document.getElementById('user-info').innerText = currentUser.full_name;
+                        // Показываем фильтры для менеджера и администратора
+                        if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+                            document.getElementById('filters').style.display = 'flex';
+                        }
+                        // Кнопка добавления товара только для администратора
+                        if (currentUser.role === 'admin') {
+                            document.getElementById('add-product').style.display = 'inline-block';
+                        }
+                    } else {
+                        // Токен недействителен
+                        localStorage.removeItem('token');
+                        window.location.href = '/login';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    window.location.href = '/login';
+                }
+            } else {
+                document.getElementById('user-info').innerText = 'Гость';
+            }
+        }
+
+        // Загрузка товаров с учётом параметров
+        async function loadProducts() {
+            const params = new URLSearchParams();
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
+                const search = document.getElementById('search').value;
+                const sort = document.getElementById('sort-quantity').value;
+                const supplier = document.getElementById('filter-supplier').value;
+                if (search) params.append('search', search);
+                if (sort) params.append('sort_by_quantity', sort);
+                if (supplier) params.append('filter_supplier', supplier);
+            }
+            const url = `/api/products?${params.toString()}`;
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            try {
+                const res = await fetch(url, { headers });
+                const products = await res.json();
+                renderTable(products);
+            } catch (err) {
+                console.error('Ошибка загрузки товаров:', err);
+            }
+        }
+
+        // Отображение таблицы товаров
+        function renderTable(products) {
+            const tbody = document.querySelector('#products-table tbody');
+            tbody.innerHTML = '';
+            for (const p of products) {
+                const tr = document.createElement('tr');
+                // Подсветка строки при скидке > 15%
+                if (p.discount_percent > 15) tr.classList.add('discount-highlight');
+                // Подсветка при отсутствии на складе
+                if (p.quantity_in_stock === 0) tr.classList.add('out-of-stock');
+
+                // Фото товара
+                const img = document.createElement('img');
+                img.src = p.image_path || '/static/images/picture.png';
+                img.alt = p.name;
+                img.classList.add('product-image');
+                const tdImg = document.createElement('td');
+                tdImg.appendChild(img);
+
+                // Наименование
+                const tdName = createCell(p.name);
+                // Категория
+                const tdCat = createCell(p.category);
+                // Описание
+                const tdDesc = createCell(p.description);
+                // Производитель
+                const tdMan = createCell(p.manufacturer);
+                // Поставщик
+                const tdSup = createCell(p.supplier);
+
+                // Цена со скидкой
+                const priceCell = document.createElement('td');
+                const finalPrice = p.price * (100 - p.discount_percent) / 100;
+                if (p.discount_percent > 0) {
+                    priceCell.innerHTML = `<span class="old-price">${p.price.toFixed(2)}</span> <span class="new-price">${finalPrice.toFixed(2)}</span>`;
+                } else {
+                    priceCell.innerText = p.price.toFixed(2);
+                }
+
+                const tdUnit = createCell(p.unit);
+                const tdQty = createCell(p.quantity_in_stock);
+                const tdDisc = createCell(p.discount_percent + '%');
+
+                tr.appendChild(tdImg);
+                tr.appendChild(tdName);
+                tr.appendChild(tdCat);
+                tr.appendChild(tdDesc);
+                tr.appendChild(tdMan);
+                tr.appendChild(tdSup);
+                tr.appendChild(priceCell);
+                tr.appendChild(tdUnit);
+                tr.appendChild(tdQty);
+                tr.appendChild(tdDisc);
+
+                // Действия (только для администратора)
+                if (currentUser && currentUser.role === 'admin') {
+                    const actions = document.createElement('td');
+                    const editBtn = document.createElement('button');
+                    editBtn.innerText = 'Редактировать';
+                    editBtn.onclick = () => editProduct(p.id);
+                    const delBtn = document.createElement('button');
+                    delBtn.innerText = 'Удалить';
+                    delBtn.onclick = () => deleteProduct(p.id);
+                    actions.appendChild(editBtn);
+                    actions.appendChild(delBtn);
+                    tr.appendChild(actions);
+                } else {
+                    tr.appendChild(document.createElement('td')); // пустая ячейка
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        function createCell(text) {
+            const td = document.createElement('td');
+            td.innerText = text || '';
+            return td;
+        }
+
+        // Загрузка поставщиков для фильтра
+        async function loadSuppliers() {
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'manager')) return;
+            const res = await fetch('/api/products/suppliers', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const suppliers = await res.json();
+            const select = document.getElementById('filter-supplier');
+            select.innerHTML = '<option value="">Все поставщики</option>';
+            suppliers.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                select.appendChild(opt);
+            });
+        }
+
+        // Редактирование товара (открытие формы)
+        function editProduct(id) {
+            // Блокировка открытия нескольких окон редактирования
+            if (localStorage.getItem('editLock')) {
+                alert('Окно редактирования уже открыто в другой вкладке');
+                return;
+            }
+            localStorage.setItem('editLock', 'true');
+            window.location.href = `/product_form?id=${id}`;
+        }
+
+        // Удаление товара
+        async function deleteProduct(id) {
+            if (!confirm('Вы уверены, что хотите удалить товар?')) return;
+            const res = await fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                loadProducts(); // обновление списка
+            } else {
+                const err = await res.json();
+                alert('Ошибка удаления: ' + (err.detail || 'Товар присутствует в заказах'));
+            }
+        }
+
+        // Обработчики событий для фильтров (реальное время)
+        if (document.getElementById('filters')) {
+            document.getElementById('search').addEventListener('input', loadProducts);
+            document.getElementById('sort-quantity').addEventListener('change', loadProducts);
+            document.getElementById('filter-supplier').addEventListener('change', loadProducts);
+        }
+
+        document.getElementById('add-product').onclick = () => {
+            if (localStorage.getItem('editLock')) {
+                alert('Окно редактирования уже открыто в другой вкладке');
+                return;
+            }
+            localStorage.setItem('editLock', 'true');
+            window.location.href = '/product_form';
+        };
+
+        document.getElementById('logout').onclick = () => {
+            localStorage.clear();
+            window.location.href = '/login';
+        };
+
+        // Запуск
+        loadUser().then(() => {
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
+                loadSuppliers();
+            }
+            loadProducts();
+        });
+    </script>
+</body>
+</html>
