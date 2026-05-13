@@ -37,6 +37,18 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
     return crud.create_order(db, order)
 
 
+@router.get("/{order_id}", response_model=schemas.Order)
+def read_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(dependencies.role_required("manager")),
+):
+    order = crud.get_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
 @router.put(
     "/{order_id}",
     response_model=schemas.Order,

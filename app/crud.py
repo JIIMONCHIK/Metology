@@ -124,3 +124,11 @@ def get_pickup_point(db: Session, point_id: int):
 
 def get_product(db: Session, product_id: int):
     return db.query(models.Product).filter(models.Product.id == product_id).first()
+
+
+def get_order(db: Session, order_id: int):
+    return db.query(models.Order).filter(models.Order.id == order_id).first()
+
+
+def get_product_by_article(db: Session, article: str):
+    return db.query(models.Product).filter(models.Product.article == article).first()

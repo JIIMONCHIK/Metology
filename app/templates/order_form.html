@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование заказа</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/Icon.ico">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="/static/images/Icon.png" alt="Логотип">
+        </div>
+        <div class="user-info" id="user-info"></div>
+        <button id="logout">Выйти</button>
+    </div>
+
+    <div class="form-container">
+        <h1 id="form-title">Добавление заказа</h1>
+        <form id="order-form">
+            <input type="hidden" id="order-id" name="id">
+
+            <div class="form-group">
+                <label>Артикул товара:</label>
+                <select id="article" required></select>
+            </div>
+
+            <div class="form-group">
+                <label>Статус заказа:</label>
+                <select id="status" required>
+                    <option value="Новый">Новый</option>
+                    <option value="В обработке">В обработке</option>
+                    <option value="Отправлен">Отправлен</option>
+                    <option value="Выдан">Выдан</option>
+                    <option value="Отменён">Отменён</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Пункт выдачи:</label>
+                <select id="pickup_point_id" required></select>
+            </div>
+
+            <div class="form-group">
+                <label>Дата заказа:</label>
+                <input type="date" id="order_date" required>
+            </div>
+
+            <div class="form-group">
+                <label>Дата выдачи (опционально):</label>
+                <input type="date" id="issue_date">
+            </div>
+
+            <div class="form-group">
+                <button type="submit">Сохранить</button>
+                <button type="button" id="cancel">Отмена</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        let orderId = null;
+        let isEdit = false;
+
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Блокировка нескольких окон
+        window.addEventListener('beforeunload', function() {
+            localStorage.removeItem('orderEditLock');
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        orderId = urlParams.get('id');
+
+        // Загрузка пользователя
+        async function loadUser() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('user-info').innerText = user.full_name;
+                    if (user.role !== 'admin') {
+                        alert('Доступ запрещён');
+                        window.location.href = '/orders';
+                    }
+                } else {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                }
+            } catch (err) {
+                window.location.href = '/login';
+            }
+        }
+
+        // Загрузка списка товаров (артикулов) для выпадающего списка
+        async function loadProducts() {
+            const res = await fetch('/api/products', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const products = await res.json();
+            const select = document.getElementById('article');
+            products.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.article;
+                opt.textContent = `${p.article} - ${p.name}`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Загрузка пунктов выдачи
+        async function loadPickupPoints() {
+            const res = await fetch('/api/pickup-points/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const points = await res.json();
+            const select = document.getElementById('pickup_point_id');
+            points.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.address;
+                select.appendChild(opt);
+            });
+        }
+
+        // Загрузка данных заказа для редактирования
+        async function loadOrder() {
+            if (!orderId) {
+                document.getElementById('form-title').innerText = 'Добавление заказа';
+                isEdit = false;
+                return;
+            }
+            isEdit = true;
+            document.getElementById('form-title').innerText = 'Редактирование заказа';
+            const res = await fetch(`/api/orders/${orderId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                alert('Заказ не найден');
+                window.location.href = '/orders';
+                return;
+            }
+            const order = await res.json();
+            document.getElementById('order-id').value = order.id;
+            document.getElementById('article').value = order.article;
+            document.getElementById('status').value = order.status;
+            document.getElementById('pickup_point_id').value = order.pickup_point_id;
+            document.getElementById('order_date').value = order.order_date;
+            if (order.issue_date) {
+                document.getElementById('issue_date').value = order.issue_date;
+            }
+        }
+
+        // Отправка формы
+        document.getElementById('order-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const orderData = {
+                article: document.getElementById('article').value,
+                status: document.getElementById('status').value,
+                pickup_point_id: parseInt(document.getElementById('pickup_point_id').value),
+                order_date: document.getElementById('order_date').value,
+                issue_date: document.getElementById('issue_date').value || null,
+                user_id: null   // по заданию user_id необязателен
+            };
+
+            let url = '/api/orders';
+            let method = 'POST';
+            if (isEdit) {
+                url = `/api/orders/${orderId}`;
+                method = 'PUT';
+            }
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (res.ok) {
+                localStorage.removeItem('orderEditLock');
+                window.location.href = '/orders';
+            } else {
+                const err = await res.json();
+                alert('Ошибка сохранения: ' + (err.detail || 'Неизвестная ошибка'));
+            }
+        });
+
+        document.getElementById('cancel').onclick = () => {
+            localStorage.removeItem('orderEditLock');
+            window.location.href = '/orders';
+        };
+        document.getElementById('logout').onclick = () => {
+            localStorage.clear();
+            window.location.href = '/login';
+        };
+
+        // Блокировка одновременного открытия
+        if (localStorage.getItem('orderEditLock')) {
+            alert('Окно редактирования заказа уже открыто в другой вкладке');
+            window.location.href = '/orders';
+        } else {
+            localStorage.setItem('orderEditLock', 'true');
+            loadUser().then(() => {
+                Promise.all([loadProducts(), loadPickupPoints()]).then(() => loadOrder());
+            });
+        }
+    </script>
+</body>
+</html>

@@ -6,81 +6,6 @@
     <title>Товары – Магазин обуви</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="icon" href="/static/images/Icon.ico">
-    <style>
-        /* Дополнительные стили для таблицы и уведомлений */
-        .product-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-        }
-        .old-price {
-            text-decoration: line-through;
-            color: red;
-            margin-right: 8px;
-        }
-        .new-price {
-            color: black;
-            font-weight: bold;
-        }
-        tr.discount-highlight {
-            background-color: #2E8B57;
-            color: white;
-        }
-        tr.out-of-stock {
-            background-color: #ADD8E6;
-        }
-        .filters {
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .filters input, .filters select {
-            padding: 8px;
-            font-size: 14px;
-        }
-        .filters input {
-            width: 300px;
-        }
-        button {
-            background-color: #00FA9A;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        button:hover {
-            background-color: #2ecc71;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #7FFF00;
-            padding: 10px 20px;
-        }
-        .logo img {
-            height: 50px;
-        }
-        .user-info {
-            font-weight: bold;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
 </head>
 <body>
     <div class="header">
@@ -88,7 +13,10 @@
             <img src="/static/images/Icon.png" alt="Логотип">
         </div>
         <div class="user-info" id="user-info"></div>
-        <button id="logout">Выйти</button>
+        <div>
+            <button id="orders-link" style="display: none;">Заказы</button>
+            <button id="logout">Выйти</button>
+        </div>
     </div>
 
     <div class="filters" id="filters" style="display: none;">
@@ -153,6 +81,14 @@
                         // Кнопка добавления товара только для администратора
                         if (currentUser.role === 'admin') {
                             document.getElementById('add-product').style.display = 'inline-block';
+                        }
+                        // Показать кнопку "Заказы" для менеджера и администратора
+                        if (currentUser && (currentUser.role === 'manager' || currentUser.role === 'admin')) {
+                            const ordersBtn = document.getElementById('orders-link');
+                            ordersBtn.style.display = 'inline-block';
+                            ordersBtn.onclick = () => {
+                                window.location.href = '/orders';
+                            };
                         }
                     } else {
                         // Токен недействителен

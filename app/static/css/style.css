@@ -1,48 +1,462 @@
+/* ============================================
+   Глобальные стили и переменные
+   ============================================ */
+:root {
+    --primary-color: #2ecc71;
+    --primary-dark: #27ae60;
+    --secondary-color: #f39c12;
+    --danger-color: #e74c3c;
+    --danger-dark: #c0392b;
+    --light-bg: #f9f9f9;
+    --dark-text: #333;
+    --light-text: #fff;
+    --border-color: #ddd;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: 'Times New Roman', serif;
-    background-color: #FFFFFF;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
     margin: 0;
     padding: 20px;
+    min-height: 100vh;
+    color: var(--dark-text);
 }
+
+/* Контейнер для центрирования содержимого */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    padding: 20px;
+}
+
+/* ============================================
+   Шапка (header)
+   ============================================ */
 .header {
-    background-color: #7FFF00;
-    padding: 10px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    padding: 12px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
 }
+
 .logo img {
     height: 50px;
+    transition: transform var(--transition);
 }
+
+.logo img:hover {
+    transform: scale(1.05);
+}
+
 .user-info {
     font-weight: bold;
+    color: var(--light-text);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
 }
-.button {
-    background-color: #00FA9A;
+
+/* Кнопки в шапке */
+.header button,
+.header .btn {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
     border: none;
     padding: 8px 16px;
+    border-radius: 20px;
     cursor: pointer;
+    font-weight: bold;
+    transition: var(--transition);
+    margin-left: 10px;
 }
+
+.header button:hover,
+.header .btn:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   Кнопки общего назначения
+   ============================================ */
+button, .btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: var(--transition);
+}
+
+button:hover, .btn:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   Формы (логин, добавление/редактирование)
+   ============================================ */
+.form-container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.form-container h1 {
+    text-align: center;
+    color: var(--primary-dark);
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.form-group label {
+    width: 180px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Превью изображения */
+.image-preview {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.image-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    background: white;
+}
+
+/* Кнопки форм */
+.form-container button[type="submit"],
+.form-container button[type="button"] {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: var(--transition);
+    margin-right: 10px;
+}
+
+.form-container button[type="submit"]:hover,
+.form-container button[type="button"]:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.form-container #cancel {
+    background-color: #95a5a6;
+}
+
+.form-container #cancel:hover {
+    background-color: #7f8c8d;
+}
+
+/* ============================================
+   Таблицы (товары, заказы)
+   ============================================ */
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 20px;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
 }
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+
+th {
+    background-color: var(--primary-dark);
+    color: white;
+    padding: 12px;
     text-align: left;
+    font-weight: 600;
 }
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+tr:hover {
+    background-color: rgba(46, 204, 113, 0.05);
+}
+
+/* Подсветка строк (скидка >15%) */
 tr.discount-highlight {
     background-color: #2E8B57;
     color: white;
 }
+
+tr.discount-highlight:hover {
+    background-color: #267c4a;
+}
+
+/* Подсветка отсутствия на складе */
 tr.out-of-stock {
-    background-color: #ADD8E6;
+    background-color: #e0f2fe;
 }
-.product-price .old-price {
+
+tr.out-of-stock:hover {
+    background-color: #bae6fd;
+}
+
+/* Изображение товара в таблице */
+.product-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+/* Цена со скидкой */
+.old-price {
     text-decoration: line-through;
-    color: red;
+    color: #e74c3c;
+    margin-right: 8px;
+    font-size: 0.9em;
 }
-.product-price .new-price {
-    color: black;
+
+.new-price {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* ============================================
+   Фильтры и поиск
+   ============================================ */
+.filters {
+    background: white;
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+}
+
+/* Специфичная ширина для поля поиска (можно изменить по желанию) */
+.filters input[type="text"] {
+    width: 300px;
+}
+
+/* ============================================
+   Кнопка "Добавить"
+   ============================================ */
+.add-button {
+    margin: 20px 0;
+    text-align: right;
+}
+
+.add-button button,
+#add-product,
+#add-order {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+}
+
+.add-button button:hover,
+#add-product:hover,
+#add-order:hover {
+    background-color: var(--primary-dark);
+    transform: scale(1.02);
+}
+
+/* ============================================
+   Страница входа (login)
+   ============================================ */
+#login-form {
+    max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+#login-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+#login-form button,
+#guest-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#guest-btn {
+    background-color: #95a5a6;
+}
+
+#guest-btn:hover {
+    background-color: #7f8c8d;
+}
+
+/* ============================================
+   Адаптивность (мобильные устройства)
+   ============================================ */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .form-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-group label {
+        width: auto;
+        margin-bottom: 5px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 6px;
+    }
+
+    .product-image {
+        width: 40px;
+        height: 40px;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters input[type="text"] {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   Утилиты
+   ============================================ */
+.text-center {
+    text-align: center;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
 }
