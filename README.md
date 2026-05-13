@@ -24,3 +24,5 @@
 - Docker / Docker Compose
 - JWT (аутентификация)
 - Passlib (хэширование паролей)
+
+

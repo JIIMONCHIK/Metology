@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -10,6 +11,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False)  # client, manager, admin
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -27,24 +29,29 @@ class Product(Base):
     discount_percent = Column(Integer, default=0)
     image_path = Column(String(255))
 
+
 class PickupPoint(Base):
     __tablename__ = "pickup_points"
 
     id = Column(Integer, primary_key=True, index=True)
     address = Column(String(255), nullable=False)
 
+
 class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    article = Column(String(50), ForeignKey("products.article", ondelete="RESTRICT"), nullable=False)
+    article = Column(
+        String(50), ForeignKey("products.article", ondelete="RESTRICT"), nullable=False
+    )
     status = Column(String(50), nullable=False)
     pickup_point_id = Column(Integer, ForeignKey("pickup_points.id"), nullable=False)
     order_date = Column(Date, nullable=False)
     issue_date = Column(Date, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
-    # Связи (опционально, для удобства)
     product = relationship("Product", backref="orders")
     pickup_point = relationship("PickupPoint")
     user = relationship("User")

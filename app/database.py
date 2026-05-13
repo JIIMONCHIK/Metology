@@ -10,6 +10,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+
 def get_db():
     """Зависимость для получения сессии БД в эндпоинтах."""
     db = SessionLocal()

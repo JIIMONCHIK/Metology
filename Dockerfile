@@ -2,6 +2,7 @@ FROM python:3.9
 
 # Установка системных зависимостей (включая postgresql-client)
 RUN apt-get update && apt-get install -y \
+    graphviz \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 

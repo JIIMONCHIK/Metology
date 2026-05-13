@@ -20,25 +20,31 @@ app.include_router(upload.router)
 # Простые HTML-страницы (рендеринг)
 from fastapi import Request
 
+
 @app.get("/")
 def root(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
 
 @app.get("/login")
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+
 @app.get("/products")
 def products_page(request: Request):
     return templates.TemplateResponse("products.html", {"request": request})
+
 
 @app.get("/orders")
 def orders_page(request: Request):
     return templates.TemplateResponse("orders.html", {"request": request})
 
+
 @app.get("/product_form")
 def product_form_page(request: Request):
     return templates.TemplateResponse("product_form.html", {"request": request})
+
 
 @app.get("/order_form")
 def order_form_page(request: Request):
